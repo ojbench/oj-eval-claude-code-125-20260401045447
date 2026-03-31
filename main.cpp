@@ -4,31 +4,18 @@
 
 using namespace std;
 
-struct Constraint {
-    int i, j, e;
-};
-
 // Global arrays for Union-Find to avoid repeated allocation
 vector<int> parent;
 vector<int> rankArr;
 
-void init(int size) {
-    parent.resize(size);
-    rankArr.resize(size);
-    for (int i = 0; i < size; i++) {
-        parent[i] = i;
-        rankArr[i] = 0;
-    }
-}
-
-int find(int x) {
+inline int find(int x) {
     if (parent[x] != x) {
         parent[x] = find(parent[x]); // Path compression
     }
     return parent[x];
 }
 
-void unite(int x, int y) {
+inline void unite(int x, int y) {
     int rootX = find(x);
     int rootY = find(y);
 
@@ -53,14 +40,19 @@ int main() {
         int n;
         scanf("%d", &n);
 
-        vector<Constraint> constraints(n);
+        vector<int> ci(n), cj(n), e(n);
         vector<int> ids;
+        ids.reserve(2 * n);
 
-        // Read all constraints and collect unique IDs
+        // Read all constraints and collect IDs
         for (int k = 0; k < n; k++) {
-            scanf("%d %d %d", &constraints[k].i, &constraints[k].j, &constraints[k].e);
-            ids.push_back(constraints[k].i);
-            ids.push_back(constraints[k].j);
+            int i, j, eq;
+            scanf("%d %d %d", &i, &j, &eq);
+            ci[k] = i;
+            cj[k] = j;
+            e[k] = eq;
+            ids.push_back(i);
+            ids.push_back(j);
         }
 
         // Coordinate compression
@@ -68,27 +60,30 @@ int main() {
         ids.erase(unique(ids.begin(), ids.end()), ids.end());
 
         int idCount = ids.size();
-        init(idCount);
+        parent.resize(idCount);
+        rankArr.assign(idCount, 0);
+        for (int i = 0; i < idCount; i++) {
+            parent[i] = i;
+        }
 
-        // Create mapping from original IDs to compressed IDs
-        // Use binary search for mapping
+        // Map constraints to compressed IDs
         for (int k = 0; k < n; k++) {
-            int ci = lower_bound(ids.begin(), ids.end(), constraints[k].i) - ids.begin();
-            int cj = lower_bound(ids.begin(), ids.end(), constraints[k].j) - ids.begin();
+            ci[k] = lower_bound(ids.begin(), ids.end(), ci[k]) - ids.begin();
+            cj[k] = lower_bound(ids.begin(), ids.end(), cj[k]) - ids.begin();
+        }
 
-            if (constraints[k].e == 1) {
-                unite(ci, cj);
+        // Process all equality constraints first
+        for (int k = 0; k < n; k++) {
+            if (e[k] == 1) {
+                unite(ci[k], cj[k]);
             }
         }
 
         // Check inequality constraints
         bool satisfied = true;
         for (int k = 0; k < n; k++) {
-            if (constraints[k].e == 0) {
-                int ci = lower_bound(ids.begin(), ids.end(), constraints[k].i) - ids.begin();
-                int cj = lower_bound(ids.begin(), ids.end(), constraints[k].j) - ids.begin();
-
-                if (find(ci) == find(cj)) {
+            if (e[k] == 0) {
+                if (find(ci[k]) == find(cj[k])) {
                     satisfied = false;
                     break;
                 }
